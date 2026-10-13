@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="description" content="pbdq — Bring portraits to life. Create interactive portraits directly on your device.">
+  <title>pbdq — Bring portraits to life</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            purple: { brand: '#3D1E6D', deep: '#281047' },
+            aqua: '#22D3EE'
+          },
+          fontFamily: {
+            sans: ['Inter', 'SF Pro Display', 'system-ui', 'sans-serif']
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    :root {
+      --purple: #3D1E6D;
+      --cyan: #22D3EE;
+      --ink: #17151b;
+      --muted: #85818d;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: #fff;
+      color: var(--ink);
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button, input { font: inherit; }
+    button { -webkit-tap-highlight-color: transparent; }
+    button:focus-visible, input:focus-visible {
+      outline: 3px solid var(--cyan);
+      outline-offset: 3px;
+    }
+
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 1px;
+      font-size: 29px;
+      line-height: 1;
+      font-weight: 950;
+      letter-spacing: -2px;
+      color: var(--purple);
+      user-select: none;
+    }
+
+    .logo span {
+      display: inline-block;
+      animation: orbit 5s ease-in-out infinite;
+      transform-origin: center;
+    }
+    .logo span:nth-child(2) { animation-delay: .12s; }
+    .logo span:nth-child(3) { animation-delay: .24s; }
+    .logo span:nth-child(4) { animation-delay: .36s; }
+
+    @keyframes orbit {
+      0%, 75%, 100% { transform: rotate(0deg); }
+      85% { transform: rotate(14deg); }
+      92% { transform: rotate(-9deg); }
+    }
+
+    .gradient-text {
+      background: linear-gradient(110deg, #3D1E6D 20%, #0e9fb4 90%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .btn-primary {
+      background: var(--purple);
+      color: white;
+      transition: transform .18s, background .18s;
+    }
+    .btn-primary:hover { background: #512789; }
+    .btn-primary:active, .btn-secondary:active { transform: scale(.97); }
+
+    .btn-secondary {
+      border: 1px solid #e8e5ed;
+      background: #fff;
+      color: #30263c;
+      transition: transform .18s, border-color .18s;
+    }
+    .btn-secondary:hover { border-color: var(--cyan); }
+
+    .pill {
+      border-radius: 999px;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 17px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .studio {
+      background: #f9f8fb;
+      border: 1px solid #efedf2;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 12px 42px rgba(36, 17, 54, .055);
+    }
+
+    .stage {
+      position: relative;
+      isolation: isolate;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse at 50% 45%, #fff 0%, #f5f2f8 72%, #eeeaf4 100%);
+      min-height: 360px;
+      aspect-ratio: 4 / 5;
+      touch-action: none;
+      user-select: none;
+    }
+
+    #camera {
+      position: absolute;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      inset: 0;
+      object-fit: cover;
+      transform: scaleX(-1);
+      transform-origin: center;
+      pointer-events: none;
+      display: none;
+    }
+
+    #artCanvas {
+      position: absolute;
+      z-index: 2;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      touch-action: none;
+    }
+
+    .stage-badge {
+      position: absolute;
+      z-index: 4;
+      left: 12px;
+      top: 12px;
+      pointer-events: none;
+      background: rgba(255,255,255,.87);
+      border: 1px solid rgba(255,255,255,.8);
+      backdrop-filter: blur(12px);
+      border-radius: 999px;
+      padding: 7px 11px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: #40334f;
+    }
+
+    .brush-cursor {
+      position: absolute;
+      z-index: 5;
+      width: 28px;
+      height: 28px;
+      border: 1.5px solid var(--cyan);
+      border-radius: 50%;
+      pointer-events: none;
+      display: none;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 0 2px rgba(255,255,255,.8);
+    }
+
+    .control-card {
+      background: white;
+      border: 1px solid #eeebf1;
+      border-radius: 18px;
+      padding: 15px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--purple);
+      cursor: pointer;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      display: inline-block;
+      background: var(--cyan);
+    }
+
+    .switch {
+      appearance: none;
+      width: 43px;
+      height: 25px;
+      border-radius: 999px;
+      background: #d9d5df;
+      position: relative;
+      cursor: pointer;
+      transition: background .2s;
+      flex-shrink: 0;
+    }
+    .switch::after {
+      content: "";
+      width: 19px;
+      height: 19px;
+      background: white;
+      border-radius: 50%;
+      position: absolute;
+      left: 3px;
+      top: 3px;
+      transition: transform .2s;
+      box-shadow: 0 1px 4px #0002;
+    }
+    .switch:checked { background: var(--purple); }
+    .switch:checked::after { transform: translateX(18px); }
+
+    .clean-ui { transition: opacity .2s; }
+    body.clean .clean-ui { display: none !important; }
+    body.clean .stage {
+      position: fixed;
+      z-index: 100;
+      inset: 0;
+      width: 100vw;
+      height: 100dvh;
+      min-height: 0;
+      aspect-ratio: auto;
+      border-radius: 0;
+      background: #000;
+    }
+    body.clean #artCanvas { object-fit: contain; }
+    body.clean .stage-badge,
+    body.clean .brush-cursor { display: none !important; }
+
+    .toast {
+      position: fixed;
+      z-index: 200;
+      bottom: max(22px, env(safe-area-inset-bottom));
+      left: 50%;
+      transform: translate(-50%, 12px);
+      opacity: 0;
+      pointer-events: none;
+      background: #21152e;
+      color: white;
+      border-radius: 999px;
+      padding: 12px 18px;
+      font-size: 12px;
+      font-weight: 650;
+      transition: all .2s;
+      max-width: calc(100vw - 32px);
+      text-align: center;
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    @media (min-width: 768px) {
+      .stage { min-height: 510px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .01ms !important;
+        transition-duration: .01ms !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="clean-ui sticky top-0 z-30 bg-white/90 backdrop-blur-xl border-b border-gray-100">
+    <div class="max-w-6xl mx-auto px-5 md:px-8 h-[68px] flex items-center justify-between">
+      <a href="#" class="logo" aria-label="pbdq home">
+        <span>p</span><span>b</span><span>d</span><span>q</span>
+      </a>
+      <div class="flex items-center gap-2">
+        <span class="hidden sm:inline text-xs text-gray-400 font-medium">CREATIVE STUDIO</span>
+        <span class="flex items-center gap-2 text-[10px] uppercase tracking-wider font-bold border border-gray-100 rounded-full px-3 py-2">
+          <span class="status-dot"></span> On device
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <main class="clean-ui max-w-6xl mx-auto px-4 md:px-8 pt-8 md:pt-12 pb-8">
+    <section class="text-center mb-8 md:mb-10">
+      <div class="inline-flex items-center gap-2 rounded-full bg-purple-50 px-3 py-1.5 mb-4">
+        <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+        <span class="text-[10px] font-extrabold uppercase tracking-[.16em] text-purple-brand">Portraits, reimagined</span>
+      </div>
+      <h1 class="text-4xl sm:text-5xl md:text-6xl font-black tracking-[-.065em] leading-[1.02]">
+        Give art a <span class="gradient-text">voice.</span>
+      </h1>
+      <p class="mt-4 text-sm md:text-base text-gray-500 max-w-md mx-auto leading-relaxed">
+        Erase a little. Step inside. Let your portrait come alive.
+      </p>
+    </section>
+
+    <div class="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_320px] gap-5 md:gap-7 items-start">
+      <section class="studio">
+        <div class="px-4 py-3 flex items-center justify-between gap-3 border-b border-gray-100 bg-white">
+          <div>
+            <div class="text-xs font-extrabold">Your canvas</div>
+            <div id="canvasInfo" class="text-[10px] text-gray-400 mt-1">Preparing portrait…</div>
+          </div>
+          <label class="pill btn-secondary !min-h-[38px] !px-3 !py-2 text-xs cursor-pointer">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            Upload
+            <input id="upload" type="file" accept="image/*" class="hidden">
+          </label>
+        </div>
+
+        <div id="stage" class="stage" aria-label="Interactive portrait canvas">
+          <video id="camera" autoplay muted playsinline></video>
+          <canvas id="artCanvas"></canvas>
+          <div class="stage-badge" id="stageBadge">✦ Portrait studio</div>
+          <div id="brushCursor" class="brush-cursor"></div>
+        </div>
+
+        <div class="p-4 bg-white flex flex-wrap gap-2 items-center justify-between border-t border-gray-100">
+          <div class="flex items-center gap-2">
+            <button id="undo" class="pill btn-secondary !min-h-[39px] !px-3" title="Undo last stroke">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6M4 13a8 8 0 1 0 2-6"/></svg>
+              Undo
+            </button>
+            <button id="reset" class="pill btn-secondary !min-h-[39px] !px-3" title="Restore original image">
+              Reset
+            </button>
+          </div>
+          <div class="flex items-center gap-1">
+            <button id="zoomOut" class="pill btn-secondary !min-h-[39px] !w-10 !px-0" aria-label="Zoom out">−</button>
+            <span id="zoomLabel" class="text-xs text-gray-500 font-bold min-w-[43px] text-center">100%</span>
+            <button id="zoomIn" class="pill btn-secondary !min-h-[39px] !w-10 !px-0" aria-label="Zoom in">+</button>
+          </div>
+        </div>
+      </section>
+
+      <aside class="flex flex-col gap-4">
+        <section class="control-card">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h2 class="text-sm font-extrabold">01 / Eraser</h2>
+              <p class="text-[11px] text-gray-400 mt-1">Reveal what's underneath.</p>
+            </div>
+            <div class="w-9 h-9 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center">
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m3 15 9-9a2.8 2.8 0 0 1 4 0l3 3a2.8 2.8 0 0 1 0 4l-7 7H7z"/><path d="m9 9 8 8M3 21h18"/></svg>
+            </div>
+          </div>
+
+          <div class="flex justify-between items-center mb-2">
+            <label for="brushSize" class="text-xs font-semibold">Brush size</label>
+            <span id="brushValue" class="text-xs font-extrabold text-purple-brand">28 px</span>
+          </div>
+          <input id="brushSize" type="range" min="4" max="100" value="28">
+          <div class="flex justify-between text-[10px] text-gray-400 mt-1">
+            <span>Precise</span><span>Wide</span>
+          </div>
+
+          <div class="mt-4 rounded-xl bg-gray-50 p-3 flex items-start gap-2.5">
+            <svg class="shrink-0 mt-0.5 text-purple-brand" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01"/></svg>
+            <p class="text-[11px] leading-relaxed text-gray-500">Trace the lips with your finger. Pinch to zoom and use two fingers to move around the portrait.</p>
+          </div>
+        </section>
+
+        <section class="control-card">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h2 class="text-sm font-extrabold">02 / Live face</h2>
+              <p class="text-[11px] text-gray-400 mt-1">Become part of the painting.</p>
+            </div>
+            <div class="w-9 h-9 rounded-xl bg-purple-50 text-purple-brand flex items-center justify-center">
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="6" width="18" height="13" rx="3"/><circle cx="12" cy="12.5" r="3"/><path d="m7 6 1-2h8l1 2"/></svg>
+            </div>
+          </div>
+
+          <button id="cameraBtn" class="pill btn-primary w-full">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="3"/><circle cx="12" cy="12.5" r="3"/></svg>
+            Start front camera
+          </button>
+
+          <div id="cameraControls" class="hidden mt-4 space-y-3">
+            <div class="flex justify-between items-center">
+              <label for="faceScale" class="text-xs font-semibold">Face scale</label>
+              <span id="faceScaleValue" class="text-xs font-bold">100%</span>
+            </div>
+            <input id="faceScale" type="range" min="50" max="200" value="100">
+
+            <div class="flex justify-between items-center">
+              <label for="faceX" class="text-xs font-semibold">Horizontal position</label>
+              <span id="faceXValue" class="text-xs font-bold">0</span>
+            </div>
+            <input id="faceX" type="range" min="-150" max="150" value="0">
+
+            <div class="flex justify-between items-center">
+              <label for="faceY" class="text-xs font-semibold">Vertical position</label>
+              <span id="faceYValue" class="text-xs font-bold">0</span>
+            </div>
+            <input id="faceY" type="range" min="-150" max="150" value="0">
+
+            <button id="stopCamera" class="pill btn-secondary w-full">Stop camera</button>
+          </div>
+
+          <p class="text-[10px] leading-relaxed text-gray-400 mt-3">Camera access requires HTTPS or localhost. Drag the portrait area with two fingers to zoom and reposition the artwork.</p>
+        </section>
+
+        <section class="control-card">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <h2 class="text-sm font-extrabold">03 / Capture</h2>
+              <p class="text-[11px] text-gray-400 mt-1">Save your moving masterpiece.</p>
+            </div>
+            <span class="text-[10px] text-gray-400 font-semibold">LOCAL</span>
+          </div>
+
+          <button id="recordBtn" class="pill btn-primary w-full mt-4">
+            <span id="recordIcon" class="w-2 h-2 rounded-full bg-white"></span>
+            <span id="recordLabel">Start recording</span>
+          </button>
+          <button id="cleanBtn" class="pill btn-secondary w-full mt-2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12s3-7 9-7 9 7 9 7-3 7-9 7-9-7-9-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            Enter clean mode
+          </button>
+          <p id="recordInfo" class="text-[10px] leading-relaxed text-gray-400 mt-3">Recording captures the canvas and live camera when supported by your browser.</p>
+        </section>
+      </aside>
+    </div>
+
+    <section class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div class="p-4 rounded-2xl border border-gray-100 flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-gray-50 flex items-center justify-center text-lg">✳</div>
+        <div><div class="text-xs font-extrabold">Made for touch</div><div class="text-[10px] text-gray-400 mt-1">Mobile-first controls</div></div>
+      </div>
+      <div class="p-4 rounded-2xl border border-gray-100 flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-cyan-50 flex items-center justify-center text-lg">⌁</div>
+        <div><div class="text-xs font-extrabold">Your creative space</div><div class="text-[10px] text-gray-400 mt-1">No account required</div></div>
+      </div>
+      <div class="p-4 rounded-2xl border border-gray-100 flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center text-lg">◈</div>
+        <div><div class="text-xs font-extrabold">Private by design</div><div class="text-[10px] text-gray-400 mt-1">Processed on device</div></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="clean-ui border-t border-gray-100 py-6 px-5 text-center">
+    <div class="logo !text-xl justify-center mb-3"><span>p</span><span>b</span><span>d</span><span>q</span></div>
+    <p class="text-[11px] text-gray-400">100% Client-side. No images or videos leave your device.</p>
+    <p class="text-[10px] text-gray-300 mt-2">Made for curious minds. © <span id="year"></span> pbdq.</p>
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const $ = id => document.getElementById(id);
+
+      const canvas = $('artCanvas');
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      const stage = $('stage');
+      const video = $('camera');
+      const cursor = $('brushCursor');
+
+      let originalImage = null;
+      let imageName = 'Mona Lisa';
+      let imageWidth = 0;
+      let imageHeight = 0;
+
+      let brushSize = 28;
+      let drawing = false;
+      let activePointer = null;
+      let lastPoint = null;
+      let undoStack = [];
+      const MAX_UNDO = 15;
+
+      // View transform applies to the portrait, not to the eraser coordinates.
+      let zoom = 1;
+      let panX = 0;
+      let panY = 0;
+
+      let cameraStream = null;
+      let mediaRecorder = null;
+      let recordedChunks = [];
+      let isRecording = false;
+      let recordingStarted = 0;
+
+      let faceScale = 1;
+      let faceX = 0;
+      let faceY = 0;
+      let cleanMode = false;
+
+      let pointers = new Map();
+      let gesture = null;
+      let cameraFrame = 0;
+      let toastTimer = 0;
+
+      function toast(message, duration = 2600) {
+        const el = $('toast');
+        el.textContent = message;
+        el.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => el.classList.remove('show'), duration);
+      }
+
+      function setCanvasInfo() {
+        $('canvasInfo').textContent =
+          `${imageName} · ${imageWidth} × ${imageHeight}`;
+      }
+
+      function resizeCanvas() {
+        const rect = stage.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+
+        // Limit backing resolution for mobile memory and performance.
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const w = Math.round(rect.width * dpr);
+        const h = Math.round(rect.height * dpr);
+
+        if (canvas.width !== w || canvas.height !== h) {
+          const old = document.createElement('canvas');
+          old.width = canvas.width || 1;
+          old.height = canvas.height || 1;
+          old.getContext('2d').drawImage(canvas, 0, 0);
+
+          canvas.width = w;
+          canvas.height = h;
+          canvas.style.width = rect.width + 'px';
+          canvas.style.height = rect.height + 'px';
+
+          if (originalImage) renderPortrait();
+        }
+      }
+
+      function getImageTransform() {
+        if (!originalImage) return null;
+
+        const w = canvas.width;
+        const h = canvas.height;
+        const fit = Math.min(w / imageWidth, h / imageHeight);
+        const scale = fit * zoom;
+
+        return {
+          scale,
+          x: (w - imageWidth * scale) / 2 + panX * (window.devicePixelRatio || 1),
+          y: (h - imageHeight * scale) / 2 + panY * (window.devicePixelRatio || 1)
+        };
+      }
+
+      function renderPortrait() {
+        if (!originalImage || !canvas.width || !canvas.height) return;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const t = getImageTransform();
+        if (!t) return;
+
+        ctx.save();
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(
+          originalImage,
+          t.x, t.y,
+          imageWidth * t.scale,
+          imageHeight * t.scale
+        );
+        ctx.restore();
+
+        $('zoomLabel').textContent = Math.round(zoom * 100) + '%';
+      }
+
+      function createDefaultPortrait() {
+        // Wikimedia Commons public-domain Mona Lisa image.
+        const sources = [
+          'https://upload.wikimedia.org/wikipedia/commons/6/6a/Mona_Lisa.jpg',
+          'https://commons.wikimedia.org/wiki/Special:FilePath/Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg'
+        ];
+
+        let index = 0;
+
+        function trySource() {
+          if (index >= sources.length) {
+            $('canvasInfo').textContent = 'Upload a portrait to get started';
+            toast('Could not load the default portrait. Upload an image instead.');
+            return;
+          }
+
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+
+          img.onload = () => {
+            originalImage = img;
+            imageWidth = img.naturalWidth;
+            imageHeight = img.naturalHeight;
+            imageName = 'Mona Lisa';
+            undoStack = [];
+            zoom = 1;
+            panX = 0;
+            panY = 0;
+            renderPortrait();
+            setCanvasInfo();
+          };
+
+          img.onerror = () => {
+            index++;
+            trySource();
+          };
+
+          img.src = sources[index];
+        }
+
+        trySource();
+      }
+
+      function loadImage(file) {
+        if (!file || !file.type.startsWith('image/')) {
+          toast('Choose a valid image file.');
+          return;
+        }
+
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+
+        img.onload = () => {
+          originalImage = img;
+          imageWidth = img.naturalWidth;
+          imageHeight = img.naturalHeight;
+          imageName = file.name.length > 25
+            ? file.name.slice(0, 22) + '…'
+            : file.name;
+
+          undoStack = [];
+          zoom = 1;
+          panX = 0;
+          panY = 0;
+          renderPortrait();
+          setCanvasInfo();
+          URL.revokeObjectURL(url);
+          $('upload').value = '';
+          toast('Portrait loaded. Start erasing!');
+        };
+
+        img.onerror = () => {
+          URL.revokeObjectURL(url);
+          toast('Unable to open this image.');
+        };
+
+        img.src = url;
+      }
+
+      $('upload').addEventListener('change', e => {
+        loadImage(e.target.files && e.target.files[0]);
+      });
+
+      function saveUndo() {
+        try {
+          undoStack.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+          if (undoStack.length > MAX_UNDO) undoStack.shift();
+        } catch (err) {
+          toast('Undo unavailable for this canvas size.');
+        }
+      }
+
+      $('undo').addEventListener('click', () => {
+        if (!undoStack.length) {
+          toast('Nothing to undo yet.');
+          return;
+        }
+        ctx.putImageData(undoStack.pop(), 0, 0);
+      });
+
+      $('reset').addEventListener('click', () => {
+        if (!originalImage) return;
+        undoStack = [];
+        zoom = 1;
+        panX = 0;
+        panY = 0;
+        renderPortrait();
+        toast('Portrait restored.');
+      });
+
+      $('brushSize').addEventListener('input', e => {
+        brushSize = Number(e.target.value);
+        $('brushValue').textContent = brushSize + ' px';
+        cursor.style.width = brushSize + 'px';
+        cursor.style.height = brushSize + 'px';
+      });
+
+      function pointerPosition(e) {
+        const rect = canvas.getBoundingClientRect();
+        const dprX = canvas.width / rect.width;
+        const dprY = canvas.height / rect.height;
+        return {
+          x: (e.clientX - rect.left) * dprX,
+          y: (e.clientY - rect.top) * dprY
+        };
+      }
+
+      function eraseSegment(from, to) {
+        const dpr = canvas.width / Math.max(1, stage.clientWidth);
+        const radius = brushSize * dpr / 2;
+
+        ctx.save();
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = 'rgba(0,0,0,1)';
+        ctx.fillStyle = 'rgba(0,0,0,1)';
+        ctx.lineWidth = radius * 2;
+
+        ctx.beginPath();
+        ctx.moveTo(from.x, from.y);
+        ctx.lineTo(to.x, to.y);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(to.x, to.y, radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function updateCursor(e) {
+        const rect = stage.getBoundingClientRect();
+        cursor.style.display = 'block';
+        cursor.style.left = (e.clientX - rect.left) + 'px';
+        cursor.style.top = (e.clientY - rect.top) + 'px';
+
+        const dpr = canvas.width / Math.max(1, stage.clientWidth);
+        const diameter = brushSize * dpr;
+        cursor.style.width = diameter + 'px';
+        cursor.style.height = diameter + 'px';
+      }
+
+      function distance(a, b) {
+        return Math.hypot(a.x - b.x, a.y - b.y);
+      }
+
+      function midpoint(a, b) {
+        return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      }
+
+      function beginGesture() {
+        const arr = [...pointers.values()];
+        if (arr.length >= 2) {
+          drawing = false;
+          gesture = {
+            type: 'transform',
+            distance: distance(arr[0], arr[1]),
+            zoom,
+            mid: midpoint(arr[0], arr[1]),
+            panX,
+            panY
+          };
+        } else if (arr.length === 1) {
+          gesture = { type: 'draw' };
+        }
+      }
+
+      stage.addEventListener('pointerdown', e => {
+        if (cleanMode) return;
+        e.preventDefault();
+
+        try { stage.setPointerCapture(e.pointerId); } catch (_) {}
+
+        pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+        if (pointers.size >= 2) {
+          drawing = false;
+          cursor.style.display = 'none';
+          beginGesture();
+          return;
+        }
+
+        activePointer = e.pointerId;
+        drawing = true;
+        lastPoint = pointerPosition(e);
+        saveUndo();
+        eraseSegment(lastPoint, lastPoint);
+        updateCursor(e);
+      });
+
+      stage.addEventListener('pointermove', e => {
+        if (!pointers.has(e.pointerId)) {
+          if (!cleanMode && e.pointerType === 'mouse') updateCursor(e);
+          return;
+        }
+
+        e.preventDefault();
+        pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+        if (pointers.size >= 2) {
+          drawing = false;
+          cursor.style.display = 'none';
+
+          const arr = [...pointers.values()];
+          const mid = midpoint(arr[0], arr[1]);
+          const dist = distance(arr[0], arr[1]);
+
+          if (gesture && gesture.type === 'transform') {
+            const ratio = dist / Math.max(1, gesture.distance);
+            zoom = Math.min(5, Math.max(.5, gesture.zoom * ratio));
+
+            const dpr = canvas.width / Math.max(1, stage.clientWidth);
+            panX = gesture.panX + (mid.x - gesture.mid.x) / dpr;
+            panY = gesture.panY + (mid.y - gesture.mid.y) / dpr;
+
+            renderPortrait();
+          } else {
+            beginGesture();
+          }
+          return;
+        }
+
+        if (drawing && e.pointerId === activePointer) {
+          const next = pointerPosition(e);
+          if (lastPoint) eraseSegment(lastPoint, next);
+          lastPoint = next;
+          updateCursor(e);
+        }
+      });
+
+      function endPointer(e) {
+        pointers.delete(e.pointerId);
+
+        if (e.pointerId === activePointer) {
+          drawing = false;
+          activePointer = null;
+          lastPoint = null;
+        }
+
+        if (pointers.size >= 2) {
+          beginGesture();
+        } else if (pointers.size === 1) {
+          const remaining = [...pointers.entries()][0];
+          activePointer = remaining[0];
+          drawing = false;
+          gesture = { type: 'draw' };
+        } else {
+          gesture = null;
+        }
+      }
+
+      ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(type => {
+        stage.addEventListener(type, endPointer);
+      });
+
+      stage.addEventListener('pointerleave', e => {
+        if (e.pointerType === 'mouse' && !drawing) cursor.style.display = 'none';
+      });
+
+      $('zoomIn').addEventListener('click', () => {
+        zoom = Math.min(5, zoom * 1.25);
+        renderPortrait();
+      });
+
+      $('zoomOut').addEventListener('click', () => {
+        zoom = Math.max(.5, zoom / 1.25);
+        renderPortrait();
+      });
+
+      // The live video is rendered directly behind transparent canvas pixels.
+      // CSS transforms move and scale the video independently of the artwork.
+      function applyFaceTransform() {
+        video.style.transform =
+          `translate(${faceX}px, ${faceY}px) scaleX(-1) scale(${faceScale})`;
+        $('faceScaleValue').textContent = Math.round(faceScale * 100) + '%';
+        $('faceXValue').textContent = faceX;
+        $('faceYValue').textContent = faceY;
+      }
+
+      $('faceScale').addEventListener('input', e => {
+        faceScale = Number(e.target.value) / 100;
+        applyFaceTransform();
+      });
+
+      $('faceX').addEventListener('input', e => {
+        faceX = Number(e.target.value);
+        applyFaceTransform();
+      });
+
+      $('faceY').addEventListener('input', e => {
+        faceY = Number(e.target.value);
+        applyFaceTransform();
+      });
+
+      async function startCamera() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          toast('Camera requires HTTPS and a compatible browser.');
+          return;
+        }
+
+        try {
+          cameraStream = await navigator.mediaDevices.getUserMedia({
+            audio: false,
+            video: {
+              facingMode: 'user',
+              width: { ideal: 1280 },
+              height: { ideal: 1280 }
+            }
+          });
+
+          video.srcObject = cameraStream;
+          video.style.display = 'block';
+          await video.play();
+
+          $('cameraBtn').textContent = 'Camera active';
+          $('cameraBtn').disabled = true;
+          $('cameraBtn').style.opacity = '.65';
+          $('cameraControls').classList.remove('hidden');
+          applyFaceTransform();
+          startCompositeLoop();
+          toast('Camera active. Erased areas now reveal your face.');
+        } catch (err) {
+          cameraStream = null;
+          let message = 'Could not start camera.';
+          if (err.name === 'NotAllowedError') {
+            message = 'Camera permission denied. Allow camera access in your browser.';
+          } else if (err.name === 'NotFoundError') {
+            message = 'No compatible camera found.';
+          }
+          toast(message, 4000);
+        }
+      }
+
+      function stopCamera() {
+        if (cameraStream) {
+          cameraStream.getTracks().forEach(track => track.stop());
+          cameraStream = null;
+        }
+
+        video.pause();
+        video.srcObject = null;
+        video.style.display = 'none';
+        $('cameraBtn').textContent = 'Start front camera';
+        $('cameraBtn').disabled = false;
+        $('cameraBtn').style.opacity = '1';
+        $('cameraControls').classList.add('hidden');
+
+        if (cameraFrame) {
+          cancelAnimationFrame(cameraFrame);
+          cameraFrame = 0;
+        }
+      }
+
+      $('cameraBtn').addEventListener('click', startCamera);
+      $('stopCamera').addEventListener('click', () => {
+        stopCamera();
+        toast('Camera stopped.');
+      });
+
+      // Recording uses a composite canvas so camera video is included.
+      // Canvas drawing is local; the MediaRecorder output is downloaded locally.
+      let composite = document.createElement('canvas');
+      let compositeCtx = composite.getContext('2d');
+      let compositeStream = null;
+      let compositeLoopRunning = false;
+
+      function drawComposite() {
+        if (!compositeLoopRunning) return;
+
+        const w = canvas.width;
+        const h = canvas.height;
+
+        if (composite.width !== w || composite.height !== h) {
+          composite.width = w;
+          composite.height = h;
+        }
+
+        compositeCtx.clearRect(0, 0, w, h);
+
+        if (cameraStream && video.readyState >= 2 && video.videoWidth) {
+          const stageW = stage.clientWidth || w;
+          const stageH = stage.clientHeight || h;
+          const dprX = w / stageW;
+          const dprY = h / stageH;
+
+          const baseScale = Math.max(stageW / video.videoWidth, stageH / video.videoHeight);
+          const dw = video.videoWidth * baseScale * faceScale * dprX;
+          const dh = video.videoHeight * baseScale * faceScale * dprY;
+
+          const dx = (w - dw) / 2 + faceX * dprX;
+          const dy = (h - dh) / 2 + faceY * dprY;
+
+          compositeCtx.save();
+          compositeCtx.translate(dx + dw, dy);
+          compositeCtx.scale(-1, 1);
+          compositeCtx.drawImage(video, 0, 0, dw, dh);
+          compositeCtx.restore();
+        }
+
+        compositeCtx.drawImage(canvas, 0, 0, w, h);
+        cameraFrame = requestAnimationFrame(drawComposite);
+      }
+
+      function startCompositeLoop() {
+        if (compositeLoopRunning) return;
+        compositeLoopRunning = true;
+        drawComposite();
+      }
+
+      function stopCompositeLoop() {
+        compositeLoopRunning = false;
+        if (cameraFrame) cancelAnimationFrame(cameraFrame);
+        cameraFrame = 0;
+      }
+
+      $('recordBtn').addEventListener('click', async () => {
+        if (isRecording) {
+          mediaRecorder.stop();
+          return;
+        }
+
+        if (!canvas.captureStream || !window.MediaRecorder) {
+          toast('Recording is not supported in this browser.');
+          return;
+        }
+
+        try {
+          composite.width = canvas.width;
+          composite.height = canvas.height;
+          compositeStream = composite.captureStream(30);
+
+          // Composite canvas already includes camera pixels.
+          startCompositeLoop();
+
+          const mimeTypes = [
+            'video/webm;codecs=vp9',
+            'video/webm;codecs=vp8',
+            'video/webm'
+          ];
+          const mimeType = mimeTypes.find(t => MediaRecorder.isTypeSupported(t));
+
+          mediaRecorder = new MediaRecorder(
+            compositeStream,
+            mimeType ? { mimeType } : undefined
+          );
+          recordedChunks = [];
+
+          mediaRecorder.ondataavailable = e => {
+            if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+          };
+
+          mediaRecorder.onstop = () => {
+            const blob = new Blob(recordedChunks, {
+              type: mediaRecorder.mimeType || 'video/webm'
+            });
+
+            if (blob.size) {
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `pbdq-portrait-${Date.now()}.webm`;
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+              setTimeout(() => URL.revokeObjectURL(url), 1500);
+              toast('Recording saved to your device.', 3500);
+            }
+
+            compositeStream?.getTracks().forEach(t => t.stop());
+            compositeStream = null;
+            isRecording = false;
+            $('recordLabel').textContent = 'Start recording';
+            $('recordIcon').style.background = 'white';
+            $('recordBtn').classList.remove('!bg-red-600');
+            $('recordInfo').textContent =
+              'Recording captures the canvas and live camera when supported by your browser.';
+          };
+
+          mediaRecorder.start(250);
+          isRecording = true;
+          recordingStarted = Date.now();
+          $('recordLabel').textContent = 'Stop & save recording';
+          $('recordIcon').style.background = '#ffb4b4';
+          $('recordBtn').style.background = '#b91c1c';
+          $('recordInfo').textContent = 'Recording locally… Tap the button again to finish.';
+          toast('Recording started.');
+        } catch (err) {
+          stopCompositeLoop();
+          compositeStream?.getTracks().forEach(t => t.stop());
+          compositeStream = null;
+          toast('Unable to start recording on this browser.');
+        }
+      });
+
+      function enterCleanMode() {
+        cleanMode = true;
+        document.body.classList.add('clean');
+        $('cleanBtn').textContent = 'Tap portrait to restore controls';
+        toast('Clean mode · Tap anywhere to exit.', 2500);
+      }
+
+      function exitCleanMode() {
+        cleanMode = false;
+        document.body.classList.remove('clean');
+        $('cleanBtn').textContent = 'Enter clean mode';
+      }
+
+      $('cleanBtn').addEventListener('click', enterCleanMode);
+
+      document.addEventListener('pointerdown', e => {
+        if (!cleanMode) return;
+        exitCleanMode();
+        // Do not accidentally erase when leaving clean mode.
+        e.preventDefault();
+        e.stopPropagation();
+      }, true);
+
+      // Prevent mobile page gestures from interfering with canvas interaction.
+      stage.addEventListener('contextmenu', e => e.preventDefault());
+
+      window.addEventListener('resize', () => {
+        resizeCanvas();
+        renderPortrait();
+      });
+
+      $('year').textContent = new Date().getFullYear();
+
+      // Initial setup.
+      resizeCanvas();
+      createDefaultPortrait();
+
+      if ('ResizeObserver' in window) {
+        new ResizeObserver(() => {
+          resizeCanvas();
+          renderPortrait();
+        }).observe(stage);
+      }
+    })();
+  </script>
+</body>
+</html>
